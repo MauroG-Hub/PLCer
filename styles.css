@@ -1,0 +1,144 @@
+
+/* Aplica un borde a TODOS los div */
+div {
+  border: 1px solid #333;  /* puedes cambiar color y grosor */
+  box-sizing: border-box;  /* mantiene los tamaños exactos */
+}
+
+/* Ajusta tamaños individuales según necesites */
+#Whole {
+  width: 100%;
+  height: 98vh;
+}
+
+#TopBar {
+  width: 100%;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  background: #f0f0f0;
+}
+
+#BottomBody {
+  display: flex;  /* para que SidePanel y Rungs se acomoden horizontalmente */
+  width: 100%;
+  height: calc(98vh - 60px);
+}
+
+#SidePanel {
+  width: 250px;
+  height: 100%;
+}
+
+#Rungs {
+    flex: 1;
+    height: 100%;
+    padding: 10px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+
+    overflow-y: auto;     /* scroll vertical */
+    overflow-x: auto;     /* scroll horizontal ahora también */
+    white-space: nowrap;  /* evita que las rungs se quiebren en varias líneas */
+}
+
+/* Cada rung sigue ocupando todo el ancho de su contenido */
+.Rung {
+    display: inline-flex; /* permite que varias columnas se alineen horizontalmente */
+    height: auto;         /* altura ajustada según filas */
+    min-width: max-content; /* ancho se ajusta al contenido */
+	border: 0px;
+}
+
+/* RungCode */
+.RungCode {
+    display: grid;
+    grid-auto-rows: 120px;
+    grid-auto-columns: 120px; /* ancho fijo de cada celda */
+    gap: 0px;
+    padding: 0;
+	border: 0px;
+}
+
+
+/* Número del rung */
+.RungNumber {
+  width: 20px;                /* ancho fijo */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  border: 0px;
+  border-right: 2px solid #333;
+}
+
+
+.grid-cell {
+    display: flex;
+    justify-content: center;   /* centrar imagen horizontalmente */
+    align-items: center;       /* centrar imagen verticalmente */
+    border: 0px;
+    padding: 0;
+}
+
+/* Imagen dentro de cada celda */
+.grid-cell img {
+    width: auto;
+    height: auto;
+    max-width: 100%;     /* nunca se sale de la celda */
+    max-height: 100%;    /* nunca se sale de la celda */
+    object-fit: contain; /* mantiene proporción */
+    display: block;
+}
+
+
+/* Botón de agregar rung */
+#AddRungBtn {
+  padding: 8px 16px;
+  border: none;
+  background: #4caf50;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+#AddRungBtn:hover {
+  background: #45a049;
+}
+
+
+#Rungs::-webkit-scrollbar {
+  width: 10px;
+}
+
+#Rungs::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 5px;
+}
+
+#Rungs::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Rung seleccionado */
+.Rung.selected .RungNumber {
+  background-color: #007bff; /* azul */
+  color: white;
+}
+
+.Rung img.inserted-image {
+    display: block;
+    margin: 0px;
+}
+
+
+.selected-cell {
+    outline: 3px solid dodgerblue;
+    outline-offset: -2px;
+}
+
+
