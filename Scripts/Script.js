@@ -56,10 +56,9 @@ function AddInstruction(InstructionName) {
     const Side = getInstructionSide(FIXED_IMAGE_URLS[Instruction]);
     const propertyName = 'LastInstruction' + Side;
 
-    const cellIndex = AvailableIndex(propertyName, Side);
 
     const selectedIndex = [...rungCode.children].indexOf(selectedCell);
-    const LastWireIndex = findLastWireIndex(cells, selectedIndex, Side);
+    let LastWireIndex = findLastWireIndex(cells, selectedIndex, Side);
     
     if (LastWireIndex < 0 || LastWireIndex >= cells.length) { LastWireIndex = 0;}
 
@@ -67,8 +66,17 @@ function AddInstruction(InstructionName) {
 
     const NoShiftInstructions = new Set([...WireCells, "WIRE", "EMPTY", "CB"]);
 
+
     if (!NoShiftInstructions.has(CellInstruction)) {
-        ShiftToRight(cells, LastWireIndex);
+        const NextSpareWire = findSpareWire(cells, LastWireIndex);
+        console.log(NextSpareWire);
+        if (NextSpareWire === -1) {
+            addColumn(); // agrega una celda por fila al selectedRung
+            AddInstruction(InstructionName);
+            return;
+        }
+        ShiftToRight(cells, LastWireIndex, NextSpareWire);
+        LastWireIndex++;
     }
 
     // Celda a modificar
@@ -111,67 +119,39 @@ function findLastWireIndex(cells, selectedIndex, side) {
 function findSpareWire(cells, startIndex) {
     let NextWireIndex = -1;
     for (let i = startIndex + 1; i < cells.length; i++) {
-        if (cells[i].dataset.instruction === "WIRE") {
+        if ((cells[i].dataset.instruction === "WIRE")||((cells[i].dataset.instruction === "EMPTY"))) {
             return i;
         }
     }
     return NextWireIndex;
 }
 
-function AvailableIndex(propertyName, Side){
 
-    const value = selectedRung.properties?.[propertyName] ?? -1;
-
-    const cellIndex =
-        (Side === "Left")  ? value + 1 :
-        (Side === "Right") ? value - 1 :
-        0;
-
-    return cellIndex;
-}
-
-
-function ShiftToRight(cellsArray, lastWireIndex) {
-    // Detectar última celda que contenga un "WIRE" después de lastWireIndex
-    const NextSpareWire = findSpareWire(cellsArray, lastWireIndex);
-    
-    // Si no hay ningún wire después, agregamos columna
-    if (NextSpareWire === -1) {
-        addColumn(); // agrega una celda por fila al selectedRung
-    }
-
+function ShiftToRight(cellsArray, lastWireIndex, NextSpareWire) {
+   
     // Determinar el rango de celdas a mover, ahora incluyendo LastWireIndex
     const EndIndex = NextSpareWire !== -1 ? NextSpareWire : cellsArray.length - 1;
-
-    // Guardar datos de las celdas a desplazar
-    const updatedCells = Array.from(cellsArray).slice(lastWireIndex, EndIndex + 1);
+    
     
     // Mover las celdas hacia la derecha empezando desde el final
-    for (let i = updatedCells.length - 1; i >= 1; i--) {
-        const targetIndex = lastWireIndex + i + 1;
-        const OriginIndex = i - 1;
-        const nextCell = cellsArray[targetIndex];
-        if (!nextCell) continue;
+    for (let i = EndIndex; i > lastWireIndex + 1; i--) {
+        const targetIndex = i;
+        const OriginIndex = targetIndex - 1;
+        const TargetCell = cellsArray[targetIndex];
+        if (!TargetCell) continue;
 
-        console.log(updatedCells);
-        console.log(targetIndex);
-        console.log(OriginIndex);
-        console.log(i);
-        const imgSrc = updatedCells[i].querySelector("img")?.src ?? null;
-        replaceGridImage(imgSrc, nextCell);
+        const SourceCell = cellsArray[OriginIndex].querySelector("img")?.src ?? null;
+        replaceGridImage(SourceCell, TargetCell);
 
         // Mantener dataset
-        nextCell.dataset.instruction = updatedCells[i].dataset.instruction ?? "NONE";
+        TargetCell.dataset.instruction = cellsArray[OriginIndex].dataset.instruction ?? "NONE";
     }
 
     // Limpiar la primera celda del bloque original (LastWireIndex)
-    const firstMovedCell = cellsArray[lastWireIndex];
+    const firstMovedCell = cellsArray[lastWireIndex + 1];
     firstMovedCell.innerHTML = "";
     firstMovedCell.dataset.instruction = "NONE";
 }
-
-
-
 
 
 function replaceGridImage(URL, cell){
@@ -299,16 +279,21 @@ function addColumn() {
     }
 
     const rungCode = selectedRung.querySelector(".RungCode");
-    const cols = selectedRung.properties?.AmountCells ?? 10;   // columnas actuales
+    let cols = selectedRung.properties?.AmountCells ?? 10;   // columnas actuales
     const rows = selectedRung.properties?.AmountOfLines ?? 1;  // filas actuales
 
     // Agregar 1 celda por fila
     for (let row = 0; row < rows; row++) {
-        createCell(rungCode, ""); // o null si quieres vacía
+        createCell(rungCode, null); // o null si quieres vacía
     }
 
+    cols++;
+
     // Actualizar propiedad interna
-    selectedRung.properties.AmountCells = cols + 1;
+    selectedRung.properties.AmountCells = cols;
+    
+    // 🔥 ACTUALIZAR EL GRID REAL
+    rungCode.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
     // Ajustar ancho del Rung si quieres (opcional)
     // selectedRung.style.width = `${(cols + 1) * 120}px`; // 120 = ancho de celda
