@@ -9,6 +9,16 @@ let selectedRung = null;
 const rungProperties = [];
 const InitialGridAmount = 15;
 
+const WireCells = new Set([
+    "WIRE",  // Horizontal Wire
+    "CB",    // Close branch
+    "OB",    // Open Branch
+    "TCB",   // T Close branch
+    "TOB",   // T Open Branch
+    "TOCB",   // T Open Close Branch
+    "VWIRE", // Vertical Wire
+    // agrega más tipos de cables o instrucciones que quieras
+]);
 
 
 // ===============================
@@ -45,27 +55,122 @@ function AddInstruction(InstructionName) {
 
     const Side = getInstructionSide(FIXED_IMAGE_URLS[Instruction]);
     const propertyName = 'LastInstruction' + Side;
-    const value = rung.properties?.[propertyName] ?? -1;
 
-    const cellIndex =
-        (Side === "Left")  ? value + 1 :
-        (Side === "Right") ? value - 1 :
-        null;
+    const cellIndex = AvailableIndex(propertyName, Side);
 
-    if (cellIndex < 0 || cellIndex >= cells.length) {
-        alert(`Invalid cell index. Must be between 0 and ${cells.length - 1}`);
-        return;
+    const selectedIndex = [...rungCode.children].indexOf(selectedCell);
+    const LastWireIndex = findLastWireIndex(cells, selectedIndex, Side);
+    
+    if (LastWireIndex < 0 || LastWireIndex >= cells.length) { LastWireIndex = 0;}
+
+    const CellInstruction = cells[LastWireIndex].dataset.instruction || "EMPTY";
+
+    const NoShiftInstructions = new Set([...WireCells, "WIRE", "EMPTY", "CB"]);
+
+    if (!NoShiftInstructions.has(CellInstruction)) {
+        ShiftToRight(cells, LastWireIndex);
     }
 
     // Celda a modificar
-    const cell = cells[cellIndex];
+    const cell = cells[LastWireIndex];
 
     // Reemplazar imagen correctamente
     replaceGridImage(FIXED_IMAGE_URLS[Instruction], cell);
 
     // Actualizar propiedades
-    rung.properties[propertyName] = cellIndex;
+    rung.properties[propertyName] = LastWireIndex;
 }
+
+function findLastWireIndex(cells, selectedIndex, side) {
+
+    // Determinar dirección según side
+    const step = side === "Left" ? -1 : side === "Right" ? 1 : 0;
+
+    if (step === 0) {
+        console.warn("Side inválido:", side);
+        return selectedIndex;
+    }
+
+    let index = selectedIndex + step;
+
+    // Si la celda vecina no tiene wire → regresar la celda seleccionada
+    if (!cells[index] || cells[index].dataset.instruction !== "WIRE") {
+        return selectedIndex;
+    }
+
+    // Si sí tiene wire → avanzar mientras siga habiendo wire en ese lado
+    while (cells[index] && cells[index].dataset.instruction === "WIRE") {
+        index += step;
+    }
+
+    // Nos pasamos una posición, regresar una atrás
+    return index - step;
+}
+
+
+function findSpareWire(cells, startIndex) {
+    let NextWireIndex = -1;
+    for (let i = startIndex + 1; i < cells.length; i++) {
+        if (cells[i].dataset.instruction === "WIRE") {
+            return i;
+        }
+    }
+    return NextWireIndex;
+}
+
+function AvailableIndex(propertyName, Side){
+
+    const value = selectedRung.properties?.[propertyName] ?? -1;
+
+    const cellIndex =
+        (Side === "Left")  ? value + 1 :
+        (Side === "Right") ? value - 1 :
+        0;
+
+    return cellIndex;
+}
+
+
+function ShiftToRight(cellsArray, lastWireIndex) {
+    // Detectar última celda que contenga un "WIRE" después de lastWireIndex
+    const NextSpareWire = findSpareWire(cellsArray, lastWireIndex);
+    
+    // Si no hay ningún wire después, agregamos columna
+    if (NextSpareWire === -1) {
+        addColumn(); // agrega una celda por fila al selectedRung
+    }
+
+    // Determinar el rango de celdas a mover, ahora incluyendo LastWireIndex
+    const EndIndex = NextSpareWire !== -1 ? NextSpareWire : cellsArray.length - 1;
+
+    // Guardar datos de las celdas a desplazar
+    const updatedCells = Array.from(cellsArray).slice(lastWireIndex, EndIndex + 1);
+    
+    // Mover las celdas hacia la derecha empezando desde el final
+    for (let i = updatedCells.length - 1; i >= 1; i--) {
+        const targetIndex = lastWireIndex + i + 1;
+        const OriginIndex = i - 1;
+        const nextCell = cellsArray[targetIndex];
+        if (!nextCell) continue;
+
+        console.log(updatedCells);
+        console.log(targetIndex);
+        console.log(OriginIndex);
+        console.log(i);
+        const imgSrc = updatedCells[i].querySelector("img")?.src ?? null;
+        replaceGridImage(imgSrc, nextCell);
+
+        // Mantener dataset
+        nextCell.dataset.instruction = updatedCells[i].dataset.instruction ?? "NONE";
+    }
+
+    // Limpiar la primera celda del bloque original (LastWireIndex)
+    const firstMovedCell = cellsArray[lastWireIndex];
+    firstMovedCell.innerHTML = "";
+    firstMovedCell.dataset.instruction = "NONE";
+}
+
+
 
 
 
@@ -80,6 +185,9 @@ function replaceGridImage(URL, cell){
     // Reemplazar la imagen existente
     cell.innerHTML = ""; 
     cell.appendChild(img);
+
+    // EXTRA — guardar instrucción real
+    cell.dataset.instruction = getInstructionNameFromUrl(URL);
 }
 
 
@@ -116,20 +224,6 @@ function updateRungNumbers() {
 }
 
 
-// Función para actualizar TopBar
-function updateSelectedRungDisplay() {
-    const display = document.getElementById("SelectedRungDisplay");
-    if (selectedRung) {
-        const numberDiv = selectedRung.querySelector(".RungNumber");
-        // fallback en caso de que dataset.num sea undefined
-        const num = numberDiv?.dataset.num ?? "?";
-        display.textContent = `Selected Rung: ${num}`;
-    } else {
-        display.textContent = "Selected Rung: None";
-    }
-}
-
-
 function selectRung(rungDiv) {
     // Si se cambia de Rung → limpiar cualquier celda seleccionada previa
     if (selectedRung && selectedRung !== rungDiv) {
@@ -147,10 +241,6 @@ function selectRung(rungDiv) {
 }
 
 
-
-
-
-// Modificar addRung para asignar click
 function addRung() {
     const rungsContainer = document.getElementById("Rungs");
 
@@ -196,34 +286,10 @@ function createInitialGrid(target, rows, cols) {
     const totalCells = rows * cols;
 
     for (let i = 0; i < totalCells; i++) {
-        const cell = document.createElement("div");
-        cell.className = "grid-cell";
-		
-		// ejemplo dentro del loop que crea 'cell'
-		cell.addEventListener('click', (event) => {
-			// NO usamos event.stopPropagation() -> así la selección del rung puede ocurrir por propagación o la forzamos explícitamente
-			const rungCode = target; // en createInitialGrid el argumento 'target' es el .RungCode
-			const rungDiv = rungCode.parentElement; // contenedor .Rung
-
-			// Seleccionar el rung explícitamente (asegura que selectedRung se actualice)
-			selectRung(rungDiv);
-
-			// Limpiar cualquier selección previa (esto asegura que NUNCA queden 2 celdas resaltadas)
-			clearSelectedCell();
-
-			// Marcar la celda clickeada
-			selectedCell = cell;
-			cell.classList.add('selected-cell');
-		});
-
-
-        const img = document.createElement("img");
-        img.src = "RungLines/WIRE.png";
-
-        cell.appendChild(img);
-        target.appendChild(cell);
+        createCell(target, "RungLines/WIRE.png");   // ← USAR createCell SIEMPRE
     }
 }
+
 
 
 function addColumn() {
@@ -238,7 +304,7 @@ function addColumn() {
 
     // Agregar 1 celda por fila
     for (let row = 0; row < rows; row++) {
-        createCell(rungCode, "RungLines/WIRE.png"); // o null si quieres vacía
+        createCell(rungCode, ""); // o null si quieres vacía
     }
 
     // Actualizar propiedad interna
@@ -337,7 +403,7 @@ function createCell(rungCode, imgSrc = null) {
     cell.className = "grid-cell";
 	
 	// Guardar tipo de instrucción
-    cell.dataset.instruction = imgSrc ? getInstructionNameFromUrl(imgSrc) : "NONE";
+    cell.dataset.instruction = imgSrc ? getInstructionNameFromUrl(imgSrc) : "EMPTY";
 
     // Listener de selección
     cell.addEventListener('click', () => {
@@ -345,6 +411,7 @@ function createCell(rungCode, imgSrc = null) {
         selectRung(rungDiv);
         clearSelectedCell();
         selectedCell = cell;
+        
         cell.classList.add('selected-cell');
     });
 
@@ -360,3 +427,9 @@ function createCell(rungCode, imgSrc = null) {
 }
 
 
+function getInstructionNameFromUrl(url) {
+    if (!url) return "EMPTY";
+    const parts = url.split("/");
+    const file = parts[parts.length - 1]; // "WIRE.png"
+    return file.replace(".png","");       // → "WIRE"
+}

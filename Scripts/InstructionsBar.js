@@ -42,3 +42,17 @@ const Wiring_URLs = [
 	"RungLines/TOB.png",
 	"RungLines/TCB.png"
 ];
+
+
+// Función para actualizar TopBar
+function updateSelectedRungDisplay() {
+    const display = document.getElementById("SelectedRungDisplay");
+    if (selectedRung) {
+        const numberDiv = selectedRung.querySelector(".RungNumber");
+        // fallback en caso de que dataset.num sea undefined
+        const num = numberDiv?.dataset.num ?? "?";
+        display.textContent = `Selected Rung: ${num}`;
+    } else {
+        display.textContent = "Selected Rung: None";
+    }
+}
