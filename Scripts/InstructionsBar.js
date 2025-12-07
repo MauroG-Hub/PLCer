@@ -13,7 +13,7 @@ document.getElementById("COIL").addEventListener("click", () => {
 });
 
 document.getElementById("OB").addEventListener("click", () => {
-    replaceGridImage("OB");
+    Addabranch();
 });
 
 document.getElementById("CB").addEventListener("click", () => {
@@ -32,7 +32,8 @@ document.getElementById("Col").addEventListener("click", () => {
 const FIXED_IMAGE_URLS = [
     "Instructions/Left/NOC.png",
     "Instructions/Left/NCC.png",
-    "Instructions/Rigth/COIL.png"
+    "Instructions/Rigth/COIL.png",
+    "Instructions/Left/TOCB.png",
 ];
 
 const Wiring_URLs = [
@@ -40,7 +41,9 @@ const Wiring_URLs = [
     "RungLines/OB.png",
     "RungLines/CB.png",
 	"RungLines/TOB.png",
-	"RungLines/TCB.png"
+	"RungLines/TCB.png",
+	"RungLines/TOCB.png",
+	"RungLines/VWIRE.png"
 ];
 
 
